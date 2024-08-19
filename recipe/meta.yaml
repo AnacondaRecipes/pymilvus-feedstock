@@ -37,17 +37,21 @@ requirements:
     - ujson >=2.0.0
     - pandas >=1.2.4
     - numpy <1.25.0  # [py<=38]
+    # setuptools required because they import pkg_resources
+    # in client/__init__.py
+    - setuptools >69
+    - setuptools <70.1  # [py<39]
   run_constrained:
     # we release a version of pymilvus without
     # the mandatory dependency to milvus-lite
     # which we make optional
     - milvus-lite >=2.4.0,<2.5.0  # [not win]
-    # setuptools is not a run dependency but
-    # it is pulled in by some other package
-    # and these constraints allow to respect
-    # the ones specified upstream in pyproject.toml
-    - setuptools >69
-    - setuptools <70.1  # [py<39]
+    # other optional dependencies
+    # [bulk_writer]
+    - minio >=7.0.0
+    - pyarrow >=12.0.0
+    # [model]
+    - milvus-model >=0.1.0
 
 test:
   imports:
