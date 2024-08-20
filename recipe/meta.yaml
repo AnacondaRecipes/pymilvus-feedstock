@@ -1,6 +1,5 @@
 {% set name = "pymilvus" %}
-{% set version = "1.1.2" %}
-
+{% set version = "2.4.5" %}
 
 package:
   name: {{ name|lower }}
@@ -8,41 +7,88 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/pymilvus-{{ version }}.tar.gz
-  sha256: 8622233c49aa9d27b84e6ee54f30d6370136a8ef4f2362b95d6499a21f5305c0
+  sha256: 1a497fe9b41d6bf62b1d5e1c412960922dde1598576fcbb8818040c8af11149f
+  patches:
+    - patches/0001-remove-milvus-lite-dependency.patch
+    - patches/0002-remove-grpc_testing-in-conftest.patch
 
 build:
   number: 0
-  noarch: python
-  script: {{ PYTHON }} -m pip install . -vv
+  skip: true  # [py<38]
+  script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
 
 requirements:
+  build:
+    - patch     # [not win]
+    - m2-patch  # [win]
   host:
     - pip
-    - python >=3.6
-    - setuptools-scm
+    - python
+    - setuptools-scm >=6.2
+    - setuptools >69
+    - setuptools <70.1  # [py<39]
+    - wheel
     - gitpython
   run:
-    - grpcio >=1.22.0,<1.38.0
-    - grpcio-tools >=1.22.0,<1.38.0
-    - python >=3.6
-    - requests >=2.22.0
+    - python
+    - grpcio >=1.49.1,<=1.63.0
+    - protobuf >=3.20.0
+    - environs <=9.5.0
     - ujson >=2.0.0
-    - mmh3
+    - pandas >=1.2.4
+    - numpy <1.25.0  # [py<=38]
+    # setuptools required because they import pkg_resources
+    # in client/__init__.py
+    - setuptools >69
+    - setuptools <70.1  # [py<39]
+  run_constrained:
+    # As requested by SF, since they do not need
+    # to access local DB files, and because
+    # milvus-lite would require a bigger effort,
+    # we release a version of pymilvus without
+    # the mandatory dependency to milvus-lite
+    # which we make optional. The SDK and the client
+    # will still be able to connect to any instance
+    # of Milvus over the network.
+    - milvus-lite >=2.4.0,<2.5.0  # [not win]
+    # other optional dependencies
+    # [bulk_writer]
+    - minio >=7.0.0
+    - pyarrow >=12.0.0
+    # [model]
+    - milvus-model >=0.1.0
 
 test:
   imports:
-    - milvus
-    - milvus.client
-  commands:
-    - pip check
+    - pymilvus
+    - pymilvus.client
   requires:
     - pip
+    - pytest
+    - grpcio ==1.62.2
+    - grpcio-tools ==1.62.2
+    # this is not available at the moment
+    # - grpcio-testing ==1.62.2
+  source_files:
+    - tests
+  commands:
+    - pip check
+    # skip test_milvus_lite for milvus-lite (made as optional dependency, not available)
+    # skip test_get_commit because uses git to retrieve a commit id, not interesting
+    # ignore test files which use grpcio-testing (not available)
+    - pytest -vv tests -k "not (test_milvus_lite or test_get_commit)" --ignore=tests/test_grpc_handler.py --ignore=tests/test_create_collection.py
 
 about:
   home: https://github.com/milvus-io/pymilvus
-  summary: Python Sdk for Milvus
   license: Apache-2.0
   license_file: LICENSE
+  license_family: Apache
+  summary: Python Sdk for Milvus
+  description: |
+    PyMilvus is a Python SDK of Milvus.
+    Its source code is open-sourced and hosted on GitHub.
+  doc_url: https://milvus.io/api-reference/pymilvus/v2.4.x/About.md
+  dev_url: https://github.com/milvus-io/pymilvus
 
 extra:
   recipe-maintainers:
