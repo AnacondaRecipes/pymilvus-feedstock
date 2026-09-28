@@ -13,14 +13,11 @@ source:
     - patches/0002-remove-grpc_testing-in-conftest.patch
 
 build:
-  number: 0
+  number: 1
   skip: true  # [py<38]
   script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
 
 requirements:
-  build:
-    - patch     # [not win]
-    - m2-patch  # [win]
   host:
     - pip
     - python
